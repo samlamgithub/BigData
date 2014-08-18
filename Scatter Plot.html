@@ -1,0 +1,215 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>D3 Page Template</title>
+        <script src="http://d3js.org/d3.v3.min.js"></script>
+        <style type="text/css">
+        .axis path,
+		.axis line {
+			fill: none;
+			stroke: black;
+			shape-rendering: crispEdges;
+		}
+
+		.axis text {
+			font-family: Arial;
+			font-size: 14px;
+		}
+		
+			</style>
+    </head>
+    <body>
+    	
+        <script type="text/javascript">
+        		
+        	d3.csv("datetimeandtop10.csv", function(error, dataset) {
+					
+        		//svg width and height
+        		var w = 1366;
+        		var h = 768;
+        		
+        		//paddling hor and ver
+        		var padhor = (200/1366) * w;
+        		var padver = (100/768) * h; 
+        		
+        						
+				//set up legend variable
+				
+				var legendpaddinghor = 150;
+        		var legendpaddingver = (768-100*2)/9.5;
+        		
+        		var svg = d3.select("body")
+							.append("svg")
+							.attr("width", w)   // <-- Here
+							.attr("height", h);
+                
+                var lenDataset = dataset.length;
+                                
+                var yScale = d3.scale.linear()
+                     .domain([0,24*60])
+                     .range([padver,h - padver]); 
+                     
+            	//x scale
+            	
+            	var setDate = function(d){
+            			var date = new Date(d[0],d[1]-1,d[2]);
+            			
+            			return date;
+            		}
+            		
+                var x = d3.time.scale()
+                			.domain(d3.extent(dataset,function(d){return setDate(d);}))
+        					.range([padhor + legendpaddinghor, w - padhor]);
+        		
+				//set up color scale
+				
+                var color = d3.scale.category10()
+                
+                
+                //setting up x1,y1 for scatter plot
+				
+				
+				var calx1 = function(d){
+                		//console.log('x(Date(d[0],d[1],d[2]))=',x(Date(d[0],d[1],d[2])));                		
+                		return x(setDate(d));
+                }    
+                
+                var caly1 = function(d){
+                
+                		//console.log(yScale(d[3]*60 + d[4]));
+                		
+                		return yScale(parseInt(d[3])*60 + parseInt(d[4]));
+                
+                }
+
+        		
+        		var hostlist = ['www.mangareader.net','mail.google.com','www.facebook.com','www.google.com','www.linkedin.com','app.mongohq.com','kumby.com','www.google.co.uk','uatpowrofyou.azurewebsites.net','www.youtube.com'];
+        		
+        		var hostlistname = ['mangareader','mail.google','facebook','google.com','linkedin','app.mongohq','kumby','google.uk','uatpowrofyou','youtube'];
+
+				//circle for making the lines more smooth	
+				svg.append('g')
+				   .selectAll('circle')
+				   .data(dataset)
+				   .enter()
+				   .append('circle')
+				   .attr({
+				   						   		
+				   		cx: function(d){return calx1(d);},
+				   				
+				   		cy: function(d){return caly1(d);},
+				   				
+				   		r:1.2,
+				   				
+				   		fill: function(d){return color(d[5]);}
+				   	})
+				   	.attr('host',function(d){				   								
+				   								return d[5];
+				   });
+				
+				// y axis	
+				
+				
+				var yScaleNew = d3.scale.ordinal()
+                     .domain([0,2,4,6,8,10,12,14,16,18,20,22,24])
+                     .rangePoints([padver,h - padver]); 
+                     		
+				var yAxis = d3.svg.axis()
+								.scale(yScaleNew)
+								.orient("left");
+				
+				svg.append("g")
+					.attr("class","axis")
+					.attr("transform", "translate(" + (padhor+legendpaddinghor-5) + "," + 0 + ")")
+				  .call(yAxis)
+					.selectAll("text") //
+				
+				//make the x axis	
+				var xAxis = d3.svg.axis()
+								.scale(x)
+								.orient("bottom");
+				
+				svg.append("g")
+					.attr("class","axis")
+					.attr("transform", "translate(" + (-5) + "," + (h - padver) + ")")
+					.call(xAxis);
+        		
+        		//create legend
+        		
+        		var legendwidth = legendpaddinghor/2;
+        		var legendheight = legendpaddingver/2;
+        		
+        		var onlyShow = function(host){
+        			
+        			console.log(host);
+        			
+        			svg.selectAll('circle')
+        			    .filter(function(d,i) {
+        			    						if (d[5] != host){
+        			    						
+        			    						return this
+        			    						}
+        			    						
+        			    })
+        				.attr('r',0)
+        		};
+        		
+        		var reShowAll = function(){
+        			
+        			svg.selectAll('circle')		
+        				.attr('r',1.2)
+        		
+        		};
+        		
+        		//rect to be shown
+        		svg.append('g')
+        			.selectAll('rect')
+        			.data(hostlist)
+        			.enter()
+        		  .append('rect')
+        			.attr('class',function(d){return d;})
+        			.attr('x',function(d,i){return padhor;})
+        			.attr('y',function(d,i){return padver + i*legendpaddingver;})
+        			.attr('height',legendheight)
+        			.attr('width',legendwidth)
+        			.attr('fill',function(d){return color(d);});
+        		  
+        		  //text
+        		  
+				  var texthor = 15;
+
+				  svg.append('g')
+					  .selectAll('text')
+					  .data(hostlistname)
+					  .enter()
+					  .append('text')
+					  .text(function(d){return d;})
+					  .attr('x',function(d,i){return padhor + legendwidth/2;})
+					  .attr('y',function(d,i){return padver + i*legendpaddingver + legendheight/2 + 5;})
+					  .attr('text-anchor','middle')
+					  .attr('font-size','12px')
+					  .attr('font-family','Arial')
+					  .attr('fill','white');
+ 				
+ 				//interact rect
+        		svg.append('g')
+        			.selectAll('rect')
+        			.data(hostlist)
+        			.enter()
+        			.append('rect')
+        			.attr('class',function(d){return d;})
+        			.attr('x',function(d,i){return padhor;})
+        			.attr('y',function(d,i){return padver + i*legendpaddingver;})
+        			.attr('height',legendheight)
+        			.attr('width',legendwidth)
+        			.attr('fill','transparent')
+        			.on('mouseover',function(d){onlyShow(d)})
+        			.on('mouseout',function(d){reShowAll(d)});
+ 			});
+ 			
+        </script>
+    </body>
+</html>
